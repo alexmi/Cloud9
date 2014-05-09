@@ -37,7 +37,7 @@ import edu.umd.cloud9.collection.Indexable;
 
 /**
  * A page from Wikipedia.
- * 
+ *
  * @author Jimmy Lin
  * @author Peter Exner
  */
@@ -99,6 +99,8 @@ public abstract class WikipediaPage extends Indexable {
   protected int textEnd;
   protected boolean isRedirect;
   protected boolean isDisambig;
+  protected boolean isFeatured;
+  protected boolean isGood;
   protected boolean isStub;
   protected boolean isArticle;
   protected String language;
@@ -238,17 +240,37 @@ public abstract class WikipediaPage extends Indexable {
   /**
    * Checks to see if this page is a disambiguation page. A <code>WikipediaPage</code> is either an
    * article, a disambiguation page, a redirect page, or an empty page.
-   * 
+   *
    * @return <code>true</code> if this page is a disambiguation page
    */
   public boolean isDisambiguation() {
     return isDisambig;
   }
 
+
+  /**
+   * Checks to see if this page is a featured article.
+   *
+   * @return <code>true</code> if this article is a featured article
+   */
+  public boolean isFeaturedArticle() {
+    return isFeatured;
+  }
+
+  /**
+   * Checks to see if this page is a good article.
+   *
+   * @return <code>true</code> if this article is a good article
+   */
+  public boolean isGoodArticle() {
+    return isGood;
+  }
+
+
   /**
    * Checks to see if this page is a redirect page. A <code>WikipediaPage</code> is either an
    * article, a disambiguation page, a redirect page, or an empty page.
-   * 
+   *
    * @return <code>true</code> if this page is a redirect page
    */
   public boolean isRedirect() {
@@ -258,7 +280,7 @@ public abstract class WikipediaPage extends Indexable {
   /**
    * Checks to see if this page is an empty page. A <code>WikipediaPage</code> is either an article,
    * a disambiguation page, a redirect page, or an empty page.
-   * 
+   *
    * @return <code>true</code> if this page is an empty page
    */
   public boolean isEmpty() {
@@ -268,7 +290,7 @@ public abstract class WikipediaPage extends Indexable {
   /**
    * Checks to see if this article is a stub. Return value is only meaningful if this page isn't a
    * disambiguation page, a redirect page, or an empty page.
-   * 
+   *
    * @return <code>true</code> if this article is a stub
    */
   public boolean isStub() {
@@ -278,7 +300,7 @@ public abstract class WikipediaPage extends Indexable {
   /**
    * Checks to see if this page lives in the main/article namespace, and not, for example, "File:",
    * "Category:", "Wikipedia:", etc.
-   * 
+   *
    * @return <code>true</code> if this page is an actual article
    */
   public boolean isArticle() {
@@ -287,7 +309,7 @@ public abstract class WikipediaPage extends Indexable {
 
   /**
    * Returns the inter-language link to a specific language (if any).
-   * 
+   *
    * @param lang language
    * @return title of the article in the foreign language if link exists, <code>null</code>
    *         otherwise
@@ -414,7 +436,7 @@ public abstract class WikipediaPage extends Indexable {
 
   /**
    * Reads a raw XML string into a <code>WikipediaPage</code> object.
-   * 
+   *
    * @param page the <code>WikipediaPage</code> object
    * @param s raw XML string
    */
@@ -426,7 +448,7 @@ public abstract class WikipediaPage extends Indexable {
   /**
    * Reads a raw XML string into a <code>WikipediaPage</code> object. Added for backwards
    * compability.
-   * 
+   *
    * @param s raw XML string
    */
   protected abstract void processPage(String s);

@@ -50,7 +50,7 @@ public class DumpWikipediaToPlainText extends Configured implements Tool {
   private static final Logger LOG = Logger.getLogger(DumpWikipediaToPlainText.class);
 
   private static enum PageTypes {
-    TOTAL, REDIRECT, DISAMBIGUATION, EMPTY, ARTICLE, STUB, OTHER
+    TOTAL, REDIRECT, DISAMBIGUATION, EMPTY, ARTICLE, STUB, FEATURED, GOOD, OTHER
   };
 
   private static class MyMapper extends Mapper<LongWritable, WikipediaPage, Text, Text> {
@@ -60,6 +60,9 @@ public class DumpWikipediaToPlainText extends Configured implements Tool {
     @Override
     public void map(LongWritable key, WikipediaPage p, Context context)
         throws IOException, InterruptedException {
+      Boolean skip = false;
+      String limit = context.getConfiguration().get("limit.retrieval");
+
       context.getCounter(PageTypes.TOTAL).increment(1);
 
       if (p.isRedirect()) {
@@ -75,10 +78,26 @@ public class DumpWikipediaToPlainText extends Configured implements Tool {
           context.getCounter(PageTypes.STUB).increment(1);
         }
 
-        articleName.set(p.getTitle().replaceAll("[\\r\\n]+", " "));
-        articleContent.set(p.getContent().replaceAll("[\\r\\n]+", " "));
+        if (p.isFeaturedArticle()) {
+          context.getCounter(PageTypes.FEATURED).increment(1);
+        }
+        else if (limit.equals("featured")) {
+          skip = true;
+        }
 
-        context.write(articleName, articleContent);
+        if (p.isGoodArticle()) {
+          context.getCounter(PageTypes.GOOD).increment(1);
+        }
+        else if (limit.equals("good")) {
+          skip = true;
+        }
+
+        if ( !skip) {
+          articleName.set(p.getTitle().replaceAll("[\\r\\n]+", " "));
+          articleContent.set(p.getContent().replaceAll("[\\r\\n]+", " "));
+          context.write(articleName, articleContent);
+        }
+
       } else {
         context.getCounter(PageTypes.OTHER).increment(1);
       }
@@ -88,6 +107,7 @@ public class DumpWikipediaToPlainText extends Configured implements Tool {
   private static final String INPUT_OPTION = "input";
   private static final String OUTPUT_OPTION = "output";
   private static final String LANGUAGE_OPTION = "wiki_language";
+  private static final String LIMIT_OPTION = "limit_retrieval";
 
   @SuppressWarnings("static-access")
   @Override
@@ -99,6 +119,8 @@ public class DumpWikipediaToPlainText extends Configured implements Tool {
         .withDescription("output path").create(OUTPUT_OPTION));
     options.addOption(OptionBuilder.withArgName("en|sv|de|cs|es|zh|ar|tr").hasArg()
         .withDescription("two-letter language code").create(LANGUAGE_OPTION));
+    options.addOption(OptionBuilder.withArgName("featured|good").hasArg()
+        .withDescription("type of article to retrieve").create(LIMIT_OPTION));
 
     CommandLine cmdline;
     CommandLineParser parser = new GnuParser();
@@ -128,15 +150,25 @@ public class DumpWikipediaToPlainText extends Configured implements Tool {
     String inputPath = cmdline.getOptionValue(INPUT_OPTION);
     String outputPath = cmdline.getOptionValue(OUTPUT_OPTION);
 
+    String limit = "none"; // Assume all articles by default.
+    if (cmdline.hasOption(LIMIT_OPTION)) {
+      limit = cmdline.getOptionValue(LIMIT_OPTION);
+      if (limit.equals("good") && limit.equals("featured")) {
+        System.err.println("Error: Unknown limit = \"" + limit + "\"!");
+        return -1;
+      }
+    }
+
     LOG.info("Tool name: " + this.getClass().getName());
     LOG.info(" - XML dump file: " + inputPath);
     LOG.info(" - output path: " + outputPath);
     LOG.info(" - language: " + language);
+    LOG.info(" - limit: " + limit);
 
     Job job = Job.getInstance(getConf());
     job.setJarByClass(DumpWikipediaToPlainText.class);
-    job.setJobName(String.format("DumpWikipediaToPlainText[%s: %s, %s: %s, %s: %s]", INPUT_OPTION,
-        inputPath, OUTPUT_OPTION, outputPath, LANGUAGE_OPTION, language));
+    job.setJobName(String.format("DumpWikipediaToPlainText[%s: %s, %s: %s, %s: %s, %s: %s]", INPUT_OPTION,
+        inputPath, OUTPUT_OPTION, outputPath, LANGUAGE_OPTION, language, INPUT_OPTION, limit));
 
     job.setNumReduceTasks(0);
 
@@ -149,6 +181,7 @@ public class DumpWikipediaToPlainText extends Configured implements Tool {
 
     job.setInputFormatClass(WikipediaPageInputFormat.class);
     job.setOutputFormatClass(TextOutputFormat.class);
+    job.getConfiguration().set("limit.retrieval", limit);
 
     job.setMapperClass(MyMapper.class);
     job.setOutputKeyClass(Text.class);

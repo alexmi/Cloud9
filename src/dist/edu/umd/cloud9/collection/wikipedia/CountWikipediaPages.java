@@ -52,7 +52,7 @@ public class CountWikipediaPages extends Configured implements Tool {
   private static final Logger LOG = Logger.getLogger(CountWikipediaPages.class);
 
   private static enum PageTypes {
-    TOTAL, REDIRECT, DISAMBIGUATION, EMPTY, ARTICLE, STUB, OTHER
+    TOTAL, REDIRECT, DISAMBIGUATION, EMPTY, ARTICLE, STUB, FEATURED, GOOD, OTHER
   };
 
   private static class MyMapper extends Mapper<LongWritable, WikipediaPage, Text, IntWritable> {
@@ -71,6 +71,14 @@ public class CountWikipediaPages extends Configured implements Tool {
       } else if (p.isArticle()) {
         context.getCounter(PageTypes.ARTICLE).increment(1);
 
+        if (p.isFeaturedArticle()) {
+          context.getCounter(PageTypes.FEATURED).increment(1);
+        }
+
+        if (p.isGoodArticle()) {
+          context.getCounter(PageTypes.GOOD).increment(1);
+        }
+
         if (p.isStub()) {
           context.getCounter(PageTypes.STUB).increment(1);
         }
@@ -82,7 +90,7 @@ public class CountWikipediaPages extends Configured implements Tool {
 
   private static final String INPUT_OPTION = "input";
   private static final String LANGUAGE_OPTION = "wiki_language";
-  
+
   @SuppressWarnings("static-access")
   @Override
   public int run(String[] args) throws Exception {
@@ -91,7 +99,7 @@ public class CountWikipediaPages extends Configured implements Tool {
         .hasArg().withDescription("XML dump file").create(INPUT_OPTION));
     options.addOption(OptionBuilder.withArgName("en|sv|de|cs|es|zh|ar|tr").hasArg()
         .withDescription("two-letter language code").create(LANGUAGE_OPTION));
-    
+
     CommandLine cmdline;
     CommandLineParser parser = new GnuParser();
     try {
@@ -107,7 +115,7 @@ public class CountWikipediaPages extends Configured implements Tool {
       ToolRunner.printGenericCommandUsage(System.out);
       return -1;
     }
-    
+
     String language = "en"; // Assume 'en' by default.
     if (cmdline.hasOption(LANGUAGE_OPTION)) {
       language = cmdline.getOptionValue(LANGUAGE_OPTION);
@@ -122,7 +130,7 @@ public class CountWikipediaPages extends Configured implements Tool {
     LOG.info("Tool name: " + this.getClass().getName());
     LOG.info(" - XML dump file: " + inputPath);
     LOG.info(" - language: " + language);
-    
+
     Job job = Job.getInstance(getConf());
     job.setJarByClass(CountWikipediaPages.class);
     job.setJobName(String.format("CountWikipediaPages[%s: %s, %s: %s]", INPUT_OPTION, inputPath,
@@ -135,7 +143,7 @@ public class CountWikipediaPages extends Configured implements Tool {
     if (language != null) {
       job.getConfiguration().set("wiki.language", language);
     }
-    
+
     job.setInputFormatClass(WikipediaPageInputFormat.class);
     job.setOutputFormatClass(NullOutputFormat.class);
 

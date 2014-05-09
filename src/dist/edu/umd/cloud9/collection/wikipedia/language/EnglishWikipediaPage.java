@@ -24,7 +24,7 @@ import edu.umd.cloud9.collection.wikipedia.WikipediaPage;
 
 /**
  * An English page from Wikipedia.
- * 
+ *
  * @author Peter Exner
  * @author Ferhan Ture
  */
@@ -37,6 +37,8 @@ public class EnglishWikipediaPage extends WikipediaPage {
   private static final String IDENTIFIER_STUB_TEMPLATE = "stub}}";
   private static final String IDENTIFIER_STUB_WIKIPEDIA_NAMESPACE = "Wikipedia:Stub";
   private static final Pattern disambPattern = Pattern.compile("\\{\\{disambig\\w*\\}\\}", Pattern.CASE_INSENSITIVE);
+  private static final Pattern featuredPattern = Pattern.compile("\\{\\{featured\\sarticle\\}\\}", Pattern.CASE_INSENSITIVE);
+  private static final Pattern goodPattern = Pattern.compile("\\{\\{good\\sarticle\\}\\}", Pattern.CASE_INSENSITIVE);
   private static final String LANGUAGE_CODE = "en";
 
   /**
@@ -49,7 +51,7 @@ public class EnglishWikipediaPage extends WikipediaPage {
   @Override
   protected void processPage(String s) {
     this.language = LANGUAGE_CODE;
-    
+
     // parse out title
     int start = s.indexOf(XML_START_TAG_TITLE);
     int end = s.indexOf(XML_END_TAG_TITLE, start);
@@ -60,7 +62,7 @@ public class EnglishWikipediaPage extends WikipediaPage {
     end = s.indexOf(XML_END_TAG_NAMESPACE);
     this.isArticle = start == -1 ? true : s.substring(start + 4, end).trim().equals("0");
     // add check because namespace tag not present in older dumps
-    
+
     // parse out the document id
     start = s.indexOf(XML_START_TAG_ID);
     end = s.indexOf(XML_END_TAG_ID);
@@ -70,12 +72,16 @@ public class EnglishWikipediaPage extends WikipediaPage {
     this.textStart = s.indexOf(XML_START_TAG_TEXT);
     this.textEnd = s.indexOf(XML_END_TAG_TEXT, this.textStart);
 
-    // determine if article is a disambiguation, redirection, and/or stub page.
+    // determine if article is a disambiguation, featured, redirection, and/or stub page.
     Matcher matcher = disambPattern.matcher(page);
     this.isDisambig = matcher.find();
+    Matcher matcher2 = featuredPattern.matcher(page);
+    this.isFeatured = matcher2.find();
+    Matcher matcher3 = goodPattern.matcher(page);
+    this.isGood = matcher3.find();
     this.isRedirect = s.substring(this.textStart + XML_START_TAG_TEXT.length(), this.textStart + XML_START_TAG_TEXT.length() + IDENTIFIER_REDIRECTION_UPPERCASE.length()).compareTo(IDENTIFIER_REDIRECTION_UPPERCASE) == 0 ||
                       s.substring(this.textStart + XML_START_TAG_TEXT.length(), this.textStart + XML_START_TAG_TEXT.length() + IDENTIFIER_REDIRECTION_LOWERCASE.length()).compareTo(IDENTIFIER_REDIRECTION_LOWERCASE) == 0;
-    this.isStub = s.indexOf(IDENTIFIER_STUB_TEMPLATE, this.textStart) != -1 || 
+    this.isStub = s.indexOf(IDENTIFIER_STUB_TEMPLATE, this.textStart) != -1 ||
                   s.indexOf(IDENTIFIER_STUB_WIKIPEDIA_NAMESPACE) != -1;
   }
 }
